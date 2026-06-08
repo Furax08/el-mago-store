@@ -15,6 +15,7 @@
         .btn-edit { background: #2196f3; color: white; width: auto; padding: 5px 10px; }
         .btn-del { background: #ff5252; color: white; width: auto; padding: 5px 10px; }
         .producto-row { display: flex; flex-direction: column; border-bottom: 1px solid #333; padding: 10px 0; gap: 5px; }
+        .actions { display: flex; gap: 5px; }
     </style>
 </head>
 <body>
@@ -48,20 +49,8 @@
         }
 
         function editarFirma() {
-            let nuevaFirma = prompt("Cambiar firma que aparece al final:", firma);
-            if(nuevaFirma) {
-                firma = nuevaFirma;
-                localStorage.setItem('firmaMago', firma);
-            }
-        }
-
-        function editarNombreJuego(i) {
-            let nuevoNombre = prompt("Nuevo nombre para el juego:", datos[i].nombre);
-            if(nuevoNombre) {
-                datos[i].nombre = nuevoNombre;
-                actualizarStorage();
-                renderizar();
-            }
+            let nuevaFirma = prompt("Cambiar firma:", firma);
+            if(nuevaFirma) { firma = nuevaFirma; localStorage.setItem('firmaMago', firma); }
         }
 
         function renderizar() {
@@ -90,46 +79,42 @@
                     let precioNumerico = parseFloat(p.precio) || 0;
                     let bs = (precioNumerico * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2});
                     html += `<div class="producto-row">
-                        <span>${p.esOtro ? '🏷️ ' : ''}${p.prod} -> <b>${bs} Bs.</b></span>
-                        <div class="actions"><button class="btn-edit" onclick="editarProducto(${i}, ${pIdx})">Editar</button></div>
+                        <span><b>${p.esOtro ? '🏷️ ' : ''}${p.prod} -> ${bs} Bs.</b></span>
+                        <div class="actions">
+                            <button class="btn-edit" onclick="editarProducto(${i}, ${pIdx})">Editar</button>
+                            <button class="btn-del" onclick="datos[${i}].productos.splice(${pIdx},1); actualizarStorage(); renderizar()">🗑️ Eliminar</button>
+                        </div>
                     </div>`;
                 });
                 container.innerHTML += html + `</div>`;
             });
         }
 
-        function mover(i, dir) {
-            let nuevoIdx = i + dir;
-            if(nuevoIdx >= 0 && nuevoIdx < datos.length) {
-                let temp = datos[i];
-                datos[i] = datos[nuevoIdx];
-                datos[nuevoIdx] = temp;
-                actualizarStorage();
-                renderizar();
-            }
-        }
-
         function copiarLista(jIdx) {
             let juego = datos[jIdx];
             let ahora = new Date();
-            let fecha = ahora.toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            let fechaStr = ahora.toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            let fecha = fechaStr.charAt(0).toUpperCase() + fechaStr.slice(1);
             let hora = ahora.toLocaleTimeString('es-VE', { hour: 'numeric', minute: '2-digit' });
+            
             let texto = `${juego.nombre}\n_____________________________\n`;
             juego.productos.filter(p => !p.esOtro).forEach(p => {
-                texto += `- ${p.prod} / ${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.\n`;
+                texto += `- **${p.prod} / ${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.**\n`;
             });
             let otros = juego.productos.filter(p => p.esOtro);
             if(otros.length > 0) {
                 texto += `\nOtros Productos:\n`;
-                otros.forEach(p => { texto += `- ${p.prod} / ${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.\n`; });
+                otros.forEach(p => { texto += `- **${p.prod} / ${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.**\n`; });
             }
-            texto += `_____________________________\n⏰${fecha}\n${hora}\n\n${firma}`;
+            texto += `_____________________________\n⏰${fecha}\n${hora}\n\n_${firma}_`;
             navigator.clipboard.writeText(texto);
             alert("¡Lista copiada!");
         }
 
-        function agregarJuego() { let nombre = document.getElementById('nuevoJuego').value; if(nombre) { datos.push({nombre, productos: []}); actualizarStorage(); renderizar(); } }
-        function agregarProducto(jIdx, esOtro=false) { let prod = prompt("Nombre:"); let precio = prompt("Precio USD:"); if(prod && precio) { datos[jIdx].productos.push({prod, precio, esOtro}); actualizarStorage(); renderizar(); } }
+        function mover(i, dir) { let n = i + dir; if(n >= 0 && n < datos.length) { let t = datos[i]; datos[i] = datos[n]; datos[n] = t; actualizarStorage(); renderizar(); } }
+        function editarNombreJuego(i) { let n = prompt("Nuevo nombre:", datos[i].nombre); if(n) { datos[i].nombre = n; actualizarStorage(); renderizar(); } }
+        function agregarJuego() { let n = document.getElementById('nuevoJuego').value; if(n) { datos.push({nombre: n, productos: []}); actualizarStorage(); renderizar(); } }
+        function agregarProducto(jIdx, esOtro=false) { let p = prompt("Nombre:"); let pr = prompt("Precio USD:"); if(p && pr) { datos[jIdx].productos.push({prod: p, precio: pr, esOtro}); actualizarStorage(); renderizar(); } }
         function editarProducto(jIdx, pIdx) { let p = datos[jIdx].productos[pIdx]; let nP = prompt("Nombre:", p.prod); let nPr = prompt("Precio:", p.precio); if(nP && nPr) { datos[jIdx].productos[pIdx] = {prod: nP, precio: nPr, esOtro: p.esOtro}; actualizarStorage(); renderizar(); } }
         function actualizarStorage() { localStorage.setItem('magoStore', JSON.stringify(datos)); }
         renderizar();
