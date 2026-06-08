@@ -9,7 +9,7 @@
         .card { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
         input, button { padding: 10px; margin: 5px 0; border-radius: 5px; border: none; width: 100%; box-sizing: border-box; }
         button { cursor: pointer; font-weight: bold; background: #333; color: white; }
-        .nav-btn { background: #444; margin: 2px; width: auto; display: inline-block; padding: 8px 12px; }
+        .nav-btn { background: #444; margin: 2px; width: auto; display: inline-block; padding: 8px 12px; font-size: 0.8em; }
         .btn-add { background: #00e676; color: #000; }
         .btn-copy { background: #ff9800; color: #000; }
         .btn-edit { background: #2196f3; color: white; width: auto; padding: 5px 10px; }
@@ -22,12 +22,13 @@
     <div class="card">
         <h3>🧙‍♂️ El Mago Stores</h3>
         <input type="number" id="tasa" placeholder="Tasa (Bs.)" oninput="guardarYActualizar()">
-        <input type="text" id="busqueda" placeholder="🔍 Buscar..." oninput="renderizar()">
+        <input type="text" id="busqueda" placeholder="🔍 Buscar juego..." oninput="renderizar()">
         <div id="navRapida"></div>
+        <button onclick="editarFirma()" style="background:#607d8b; margin-top:10px;">✏️ Editar Firma Global</button>
     </div>
 
     <div class="card">
-        <input type="text" id="nuevoJuego" placeholder="Nombre del juego...">
+        <input type="text" id="nuevoJuego" placeholder="Nombre del nuevo juego...">
         <button class="btn-add" onclick="agregarJuego()">+ Agregar Juego</button>
     </div>
 
@@ -46,6 +47,23 @@
             renderizar();
         }
 
+        function editarFirma() {
+            let nuevaFirma = prompt("Cambiar firma que aparece al final:", firma);
+            if(nuevaFirma) {
+                firma = nuevaFirma;
+                localStorage.setItem('firmaMago', firma);
+            }
+        }
+
+        function editarNombreJuego(i) {
+            let nuevoNombre = prompt("Nuevo nombre para el juego:", datos[i].nombre);
+            if(nuevoNombre) {
+                datos[i].nombre = nuevoNombre;
+                actualizarStorage();
+                renderizar();
+            }
+        }
+
         function renderizar() {
             let filtro = document.getElementById('busqueda').value.toLowerCase();
             let container = document.getElementById('contenedorJuegos');
@@ -58,13 +76,14 @@
                 if(!juego.nombre.toLowerCase().includes(filtro)) return;
 
                 let html = `<div class="card" id="juego_${i}">
-                    <h3>${juego.nombre}
+                    <h3>${juego.nombre} 
+                        <button class="btn-edit" onclick="editarNombreJuego(${i})">✏️</button>
                         <button class="btn-edit" onclick="mover(${i}, -1)">⬆️</button>
                         <button class="btn-edit" onclick="mover(${i}, 1)">⬇️</button>
                         <button class="btn-del" onclick="datos.splice(${i},1); actualizarStorage(); renderizar()">X</button>
                     </h3>
-                    <button class="btn-add" onclick="agregarProducto(${i})">+ Prod</button>
-                    <button class="btn-add" style="background:#9c27b0" onclick="agregarProducto(${i}, true)">+ Otro</button>
+                    <button class="btn-add" onclick="agregarProducto(${i})">+ Producto</button>
+                    <button class="btn-add" style="background:#9c27b0" onclick="agregarProducto(${i}, true)">+ Otro Producto</button>
                     <button class="btn-copy" onclick="copiarLista(${i})">📋 Copiar Lista</button>`;
                 
                 juego.productos.forEach((p, pIdx) => {
@@ -95,7 +114,7 @@
             let ahora = new Date();
             let fecha = ahora.toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
             let hora = ahora.toLocaleTimeString('es-VE', { hour: 'numeric', minute: '2-digit' });
-            let texto = `🧙‍♂️${juego.nombre}\n_____________________________\n`;
+            let texto = `${juego.nombre}\n_____________________________\n`;
             juego.productos.filter(p => !p.esOtro).forEach(p => {
                 texto += `- ${p.prod} / ${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.\n`;
             });
