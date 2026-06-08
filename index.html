@@ -38,7 +38,7 @@
     <script>
         let datos = JSON.parse(localStorage.getItem('magoStore')) || [];
         let tasa = parseFloat(localStorage.getItem('tasaMago')) || 0;
-        let firma = localStorage.getItem('firmaMago') || "🧙‍♂️EL Mago Stores - Servicio de compra - Juegos";
+        let firma = localStorage.getItem('firmaMago') || "_🧙‍♂️EL Mago Stores - Servicio de compra - Juegos🛒🛍️_";
 
         document.getElementById('tasa').value = tasa;
 
@@ -97,18 +97,18 @@
             let fecha = fechaStr.charAt(0).toUpperCase() + fechaStr.slice(1);
             let hora = ahora.toLocaleTimeString('es-VE', { hour: 'numeric', minute: '2-digit' });
             
-            let texto = `${juego.nombre}\n_____________________________\n`;
+            let texto = `*${juego.nombre}*\n_____________________________\n`;
             juego.productos.filter(p => !p.esOtro).forEach(p => {
-                texto += `- **${p.prod} / ${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.**\n`;
+                texto += `- 🔥${p.prod} / *${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.*\n`;
             });
             let otros = juego.productos.filter(p => p.esOtro);
             if(otros.length > 0) {
                 texto += `\nOtros Productos:\n`;
-                otros.forEach(p => { texto += `- **${p.prod} / ${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.**\n`; });
+                otros.forEach(p => { texto += `- 🏷️ ${p.prod} / *${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.*\n`; });
             }
-            texto += `_____________________________\n⏰${fecha}\n${hora}\n\n_${firma}_`;
+            texto += `_____________________________\n⏰${fecha}\n${hora}\n\n${firma}`;
             navigator.clipboard.writeText(texto);
-            alert("¡Lista copiada!");
+            alert("¡Lista copiada con tu nuevo formato!");
         }
 
         function mover(i, dir) { let n = i + dir; if(n >= 0 && n < datos.length) { let t = datos[i]; datos[i] = datos[n]; datos[n] = t; actualizarStorage(); renderizar(); } }
