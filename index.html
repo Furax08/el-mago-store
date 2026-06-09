@@ -9,9 +9,12 @@
         .card { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
         input, button { padding: 10px; margin: 5px 0; border-radius: 5px; border: none; width: 100%; box-sizing: border-box; }
         button { cursor: pointer; font-weight: bold; background: #333; color: white; }
+        .logo-container { text-align: center; margin-bottom: 15px; }
+        .logo-preview { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #00e676; cursor: pointer; }
         .nav-btn { background: #444; margin: 2px; width: auto; display: inline-block; padding: 8px 12px; font-size: 0.8em; }
         .btn-add { background: #00e676; color: #000; }
-        .btn-copy { background: #ff9800; color: #000; }
+        .btn-fb { background: #1877f2; color: white; }
+        .btn-ig { background: #e1306c; color: white; }
         .btn-edit { background: #2196f3; color: white; width: auto; padding: 5px 10px; }
         .btn-del { background: #ff5252; color: white; width: auto; padding: 5px 10px; }
         .producto-row { display: flex; flex-direction: column; border-bottom: 1px solid #333; padding: 10px 0; gap: 5px; }
@@ -21,7 +24,11 @@
 <body>
 
     <div class="card">
-        <h3>🧙‍♂️ El Mago Stores</h3>
+        <div class="logo-container">
+            <img id="logoImg" src="https://via.placeholder.com/150?text=Logo" class="logo-preview" onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" style="display:none" accept="image/*" onchange="cargarLogo(event)">
+            <h3>El Mago Stores</h3>
+        </div>
         <input type="number" id="tasa" placeholder="Tasa (Bs.)" oninput="guardarYActualizar()">
         <input type="text" id="busqueda" placeholder="🔍 Buscar juego..." oninput="renderizar()">
         <div id="navRapida"></div>
@@ -38,9 +45,21 @@
     <script>
         let datos = JSON.parse(localStorage.getItem('magoStore')) || [];
         let tasa = parseFloat(localStorage.getItem('tasaMago')) || 0;
-        let firma = localStorage.getItem('firmaMago') || "_🧙‍♂️EL Mago Stores - Servicio de compra - Juegos🛒🛍️_";
+        let firma = localStorage.getItem('firmaMago') || "_🧙‍♂️EL Mago Store - Servicio de compra - Juegos🛒🛍️_";
+        let logoGuardado = localStorage.getItem('logoMago');
 
+        if(logoGuardado) document.getElementById('logoImg').src = logoGuardado;
         document.getElementById('tasa').value = tasa;
+
+        function cargarLogo(event) {
+            let reader = new FileReader();
+            reader.onload = function(){
+                let dataURL = reader.result;
+                document.getElementById('logoImg').src = dataURL;
+                localStorage.setItem('logoMago', dataURL);
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
 
         function guardarYActualizar() {
             tasa = parseFloat(document.getElementById('tasa').value) || 0;
@@ -73,7 +92,8 @@
                     </h3>
                     <button class="btn-add" onclick="agregarProducto(${i})">+ Producto</button>
                     <button class="btn-add" style="background:#9c27b0" onclick="agregarProducto(${i}, true)">+ Otro Producto</button>
-                    <button class="btn-copy" onclick="copiarLista(${i})">📋 Copiar Lista</button>`;
+                    <button class="btn-fb" onclick="copiarFacebook(${i})">🔵 Copiar FB</button>
+                    <button class="btn-ig" onclick="copiarInstagram(${i})">📸 Copiar IG</button>`;
                 
                 juego.productos.forEach((p, pIdx) => {
                     let precioNumerico = parseFloat(p.precio) || 0;
@@ -90,25 +110,32 @@
             });
         }
 
-        function copiarLista(jIdx) {
-            let juego = datos[jIdx];
+        function obtenerFechaHora() {
             let ahora = new Date();
-            let fechaStr = ahora.toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-            let fecha = fechaStr.charAt(0).toUpperCase() + fechaStr.slice(1);
-            let hora = ahora.toLocaleTimeString('es-VE', { hour: 'numeric', minute: '2-digit' });
-            
-            let texto = `*${juego.nombre}*\n_____________________________\n`;
-            juego.productos.filter(p => !p.esOtro).forEach(p => {
-                texto += `- 🔥${p.prod} / *${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.*\n`;
-            });
-            let otros = juego.productos.filter(p => p.esOtro);
-            if(otros.length > 0) {
-                texto += `\nOtros Productos:\n`;
-                otros.forEach(p => { texto += `- 🏷️ ${p.prod} / *${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.*\n`; });
-            }
-            texto += `_____________________________\n⏰${fecha}\n${hora}\n\n${firma}`;
-            navigator.clipboard.writeText(texto);
-            alert("¡Lista copiada con tu nuevo formato!");
+            let f = ahora.toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            return { fecha: f.charAt(0).toUpperCase() + f.slice(1), hora: ahora.toLocaleTimeString('es-VE', { hour: 'numeric', minute: '2-digit' }) };
+        }
+
+        function copiarFacebook(jIdx) {
+            let j = datos[jIdx];
+            let {fecha, hora} = obtenerFechaHora();
+            let t = `*🪄${j.nombre}🧙‍♂️*\n____________________________________\n\n`;
+            j.productos.filter(p => !p.esOtro).forEach(p => { t += `${p.prod} / *${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.*\n`; });
+            let o = j.productos.filter(p => p.esOtro);
+            if(o.length > 0) { t += `\n*✨Otros Productos:*\n`; o.forEach(p => { t += `- _${p.prod}_  / *${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.*\n`; }); }
+            t += `____________________________________\n⏰${fecha}\n${hora}\n\n${firma.replace(/_/g, '')}`;
+            navigator.clipboard.writeText(t); alert("Copiado para Facebook");
+        }
+
+        function copiarInstagram(jIdx) {
+            let j = datos[jIdx];
+            let {fecha, hora} = obtenerFechaHora();
+            let t = `🪄${j.nombre}🧙‍♂️\n________________________________________\n\n`;
+            j.productos.filter(p => !p.esOtro).forEach(p => { t += `${p.prod} / ${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.\n`; });
+            let o = j.productos.filter(p => p.esOtro);
+            if(o.length > 0) { t += `\n✨Otros Productos:\n`; o.forEach(p => { t += `- ${p.prod} / ${(parseFloat(p.precio) * tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})} Bs.\n`; }); }
+            t += `________________________________________\n⏰${fecha}\n${hora}\n\n${firma.replace(/_/g, '')}`;
+            navigator.clipboard.writeText(t); alert("Copiado para Instagram");
         }
 
         function mover(i, dir) { let n = i + dir; if(n >= 0 && n < datos.length) { let t = datos[i]; datos[i] = datos[n]; datos[n] = t; actualizarStorage(); renderizar(); } }
@@ -121,3 +148,4 @@
     </script>
 </body>
 </html>
+
