@@ -17,8 +17,12 @@
         .btn-ig { background: #e1306c; color: white; }
         .btn-edit { background: #2196f3; color: white; width: auto; padding: 5px 10px; }
         .btn-del { background: #ff5252; color: white; width: auto; padding: 5px 10px; }
+        .btn-export { background: #2e7d32; color: white; margin-top: 5px; }
+        .btn-json { background: #ff9800; color: #000; margin-top: 5px; }
+        .btn-import { background: #00bcd4; color: #000; margin-top: 5px; }
         .producto-row { display: flex; flex-direction: column; border-bottom: 1px solid #333; padding: 10px 0; gap: 5px; }
         .actions { display: flex; gap: 5px; }
+        .export-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -33,6 +37,14 @@
         <input type="text" id="busqueda" placeholder="🔍 Buscar juego..." oninput="renderizar()">
         <div id="navRapida"></div>
         <button onclick="editarFirma()" style="background:#607d8b; margin-top:10px;">✏️ Editar Firma Global</button>
+
+        <!-- Botones de Descarga y Respaldo -->
+        <div class="export-grid">
+            <button class="btn-export" onclick="descargarExcelCSV()">📊 Descargar Excel (CSV)</button>
+            <button class="btn-json" onclick="descargarJSON()">💾 Descargar Respaldo (JSON)</button>
+        </div>
+        <button class="btn-import" onclick="document.getElementById('importInput').click()">📥 Restaurar / Cargar JSON</button>
+        <input type="file" id="importInput" style="display:none" accept=".json" onchange="importarJSON(event)">
     </div>
 
     <div class="card">
@@ -140,12 +152,112 @@
 
         function mover(i, dir) { let n = i + dir; if(n >= 0 && n < datos.length) { let t = datos[i]; datos[i] = datos[n]; datos[n] = t; actualizarStorage(); renderizar(); } }
         function editarNombreJuego(i) { let n = prompt("Nuevo nombre:", datos[i].nombre); if(n) { datos[i].nombre = n; actualizarStorage(); renderizar(); } }
-        function agregarJuego() { let n = document.getElementById('nuevoJuego').value; if(n) { datos.push({nombre: n, productos: []}); actualizarStorage(); renderizar(); } }
+        
+        function agregarJuego() { 
+            let n = document.getElementById('nuevoJuego').value.trim(); 
+            if(n) { 
+                datos.push({nombre: n, productos: []}); 
+                document.getElementById('nuevoJuego').value = '';
+                actualizarStorage(); 
+                renderizar(); 
+            } 
+        }
+
         function agregarProducto(jIdx, esOtro=false) { let p = prompt("Nombre:"); let pr = prompt("Precio USD:"); if(p && pr) { datos[jIdx].productos.push({prod: p, precio: pr, esOtro}); actualizarStorage(); renderizar(); } }
         function editarProducto(jIdx, pIdx) { let p = datos[jIdx].productos[pIdx]; let nP = prompt("Nombre:", p.prod); let nPr = prompt("Precio:", p.precio); if(nP && nPr) { datos[jIdx].productos[pIdx] = {prod: nP, precio: nPr, esOtro: p.esOtro}; actualizarStorage(); renderizar(); } }
         function actualizarStorage() { localStorage.setItem('magoStore', JSON.stringify(datos)); }
+
+        // --- FUNCIONES DE DESCARGA Y RESPALDO ---
+        function descargarArchivo(contenido, nombreArchivo, tipoMime) {
+            let blob = new Blob([contenido], { type: tipoMime });
+            let url = URL.createObjectURL(blob);
+            let a = document.createElement('a');
+            a.href = url;
+            a.download = nombreArchivo;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function descargarJSON() {
+            if(!datos || datos.length === 0) {
+                alert("No hay listas de precios para descargar.");
+                return;
+            }
+            let dataStr = JSON.stringify(datos, null, 2);
+            let fechaStr = new Date().toISOString().slice(0, 10);
+            descargarArchivo(dataStr, `precios_mago_store_${fechaStr}.json`, 'application/json');
+        }
+
+        function descargarExcelCSV() {
+            if(!datos || datos.length === 0) {
+                alert("No hay listas de precios para descargar.");
+                return;
+            }
+
+            let filas = [["Juego / Categoría", "Tipo", "Producto", "Precio USD", "Tasa (Bs.)", "Precio Bs."]];
+
+            datos.forEach(juego => {
+                if(juego.productos && juego.productos.length > 0) {
+                    juego.productos.forEach(p => {
+                        let usd = parseFloat(p.precio) || 0;
+                        let bs = usd * tasa;
+                        let tipo = p.esOtro ? "Otro Producto" : "Principal";
+                        filas.push([
+                            `"${(juego.nombre || '').replace(/"/g, '""')}"`,
+                            `"${tipo}"`,
+                            `"${(p.prod || '').replace(/"/g, '""')}"`,
+                            usd.toFixed(2),
+                            tasa.toFixed(2),
+                            bs.toFixed(2)
+                        ]);
+                    });
+                } else {
+                    filas.push([
+                        `"${(juego.nombre || '').replace(/"/g, '""')}"`,
+                        `"Sin productos"`,
+                        `""`,
+                        `0.00`,
+                        tasa.toFixed(2),
+                        `0.00`
+                    ]);
+                }
+            });
+
+            // BOM UTF-8 (\uFEFF) para visualización correcta de tildes y símbolos en Excel
+            let csvContent = "\uFEFF" + filas.map(e => e.join(";")).join("\r\n");
+            let fechaStr = new Date().toISOString().slice(0, 10);
+            descargarArchivo(csvContent, `precios_mago_store_${fechaStr}.csv`, 'text/csv;charset=utf-8;');
+        }
+
+        function importarJSON(event) {
+            let file = event.target.files[0];
+            if(!file) return;
+
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let importados = JSON.parse(e.target.result);
+                    if(Array.isArray(importados)) {
+                        if(confirm("¿Deseas reemplazar la lista actual con los datos del archivo importado?")) {
+                            datos = importados;
+                            actualizarStorage();
+                            renderizar();
+                            alert("¡Datos restaurados con éxito!");
+                        }
+                    } else {
+                        alert("El archivo no tiene el formato correcto.");
+                    }
+                } catch(err) {
+                    alert("Error al leer el archivo JSON: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
         renderizar();
     </script>
 </body>
 </html>
-
